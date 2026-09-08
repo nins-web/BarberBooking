@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react'
 
+import { rupiah } from '@/lib/supabase'
+
 type Row = {
   id: string
   tanggal: string
@@ -14,8 +16,16 @@ type Row = {
   services: { nama: string; harga: number } | null
 }
 
+type Tx = {
+  id: string
+  harga: number
+  komisi: number
+  metode: string
+}
+
 export default function AdminPage() {
   const [rows, setRows] = useState<Row[]>([])
+  const [tx, setTx] = useState<Tx[]>([])
   const [tanggal, setTanggal] = useState(() => new Date().toISOString().slice(0, 10))
   const [loading, setLoading] = useState(true)
 
@@ -29,6 +39,13 @@ export default function AdminPage() {
       setRows([])
     } finally {
       setLoading(false)
+    }
+    try {
+      const r = await fetch(`/api/kasir?tanggal=${t}`)
+      const d = await r.json()
+      setTx(d.transaksi ?? [])
+    } catch {
+      setTx([])
     }
   }
 
@@ -48,6 +65,23 @@ export default function AdminPage() {
       <div className="mx-auto max-w-3xl px-4 py-10">
         <h1 className="text-2xl font-bold">Admin — Booking Hari Ini</h1>
         <input type="date" value={tanggal} onChange={(e) => setTanggal(e.target.value)} className="mt-4 rounded-lg bg-neutral-900 border border-neutral-700 px-3 py-2" />
+        <section className="mt-6 rounded-xl border border-neutral-800 bg-neutral-900 p-4">
+          <h2 className="font-bold">Omzet Hari Ini</h2>
+          {(() => {
+            const omzet = tx.reduce((a, t) => a + (t.harga || 0), 0)
+            const komisi = tx.reduce((a, t) => a + (t.komisi || 0), 0)
+            const tunai = tx.filter((t) => t.metode === 'Tunai').reduce((a, t) => a + (t.harga || 0), 0)
+            const qris = tx.filter((t) => t.metode === 'QRIS').reduce((a, t) => a + (t.harga || 0), 0)
+            return (
+              <div className="mt-2 grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
+                <div className="rounded-lg bg-neutral-950 p-3"><p className="text-neutral-400">Omzet</p><p className="font-bold">{rupiah(omzet)}</p></div>
+                <div className="rounded-lg bg-neutral-950 p-3"><p className="text-neutral-400">Transaksi</p><p className="font-bold">{tx.length}x</p></div>
+                <div className="rounded-lg bg-neutral-950 p-3"><p className="text-neutral-400">Komisi</p><p className="font-bold">{rupiah(komisi)}</p></div>
+                <div className="rounded-lg bg-neutral-950 p-3"><p className="text-neutral-400">Tunai / QRIS</p><p className="font-bold">{rupiah(tunai)} / {rupiah(qris)}</p></div>
+              </div>
+            )
+          })()}
+        </section>
         {loading ? (
           <p className="mt-6 text-neutral-400">Memuat...</p>
         ) : rows.length === 0 ? (
