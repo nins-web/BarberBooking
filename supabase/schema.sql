@@ -1,4 +1,7 @@
--- Barbershop Booking MVP schema
+-- Barbershop Booking MVP schema (FIX v2: pakai barber_bookings biar tidak tabrakan dengan tabel bookings Rental Sedulur)
+-- Jalankan di SQL Editor Supabase project rkriinnzjdpchtcdtfay
+-- Aman dijalankan ulang (idempotent)
+
 create table if not exists barbers (
   id uuid primary key default gen_random_uuid(),
   nama text not null,
@@ -13,7 +16,7 @@ create table if not exists services (
   durasi_menit integer not null default 30
 );
 
-create table if not exists bookings (
+create table if not exists barber_bookings (
   id uuid primary key default gen_random_uuid(),
   barber_id uuid not null references barbers(id) on delete cascade,
   service_id uuid not null references services(id) on delete cascade,
@@ -27,14 +30,15 @@ create table if not exists bookings (
 );
 
 -- Cegah double-booking: overlap jam per barber + tanggal (abaikan yang batal)
-create or replace function cegah_overlap_booking()
+-- Nama trigger & fungsi dibedakan dari rental (trg_cegah_overlap) biar tidak saling hapus
+create or replace function cegah_overlap_barber()
 returns trigger as $$
 begin
   if new.jam_selesai <= new.jam_mulai then
     raise exception 'Jam selesai harus setelah jam mulai';
   end if;
   if exists (
-    select 1 from bookings b
+    select 1 from barber_bookings b
     where b.barber_id = new.barber_id
       and b.tanggal = new.tanggal
       and b.status in ('pending','confirmed')
@@ -48,30 +52,30 @@ begin
 end;
 $$ language plpgsql;
 
-drop trigger if exists trg_cegah_overlap on bookings;
-create trigger trg_cegah_overlap
-before insert or update on bookings
-for each row execute function cegah_overlap_booking();
+drop trigger if exists trg_cegah_overlap_barber on barber_bookings;
+create trigger trg_cegah_overlap_barber
+before insert or update on barber_bookings
+for each row execute function cegah_overlap_barber();
 
-create index if not exists idx_bookings_barber_tgl on bookings(barber_id, tanggal);
+create index if not exists idx_barber_bookings_barber_tgl on barber_bookings(barber_id, tanggal);
 
 -- RLS
 alter table barbers enable row level security;
 alter table services enable row level security;
-alter table bookings enable row level security;
+alter table barber_bookings enable row level security;
 
 drop policy if exists "select semua" on barbers;
 create policy "select semua" on barbers for select using (true);
 drop policy if exists "select semua" on services;
 create policy "select semua" on services for select using (true);
-drop policy if exists "select semua" on bookings;
-create policy "select semua" on bookings for select using (true);
-drop policy if exists "insert semua" on bookings;
-create policy "insert semua" on bookings for insert with check (true);
-drop policy if exists "update semua" on bookings;
-create policy "update semua" on bookings for update using (true);
+drop policy if exists "select semua" on barber_bookings;
+create policy "select semua" on barber_bookings for select using (true);
+drop policy if exists "insert semua" on barber_bookings;
+create policy "insert semua" on barber_bookings for insert with check (true);
+drop policy if exists "update semua" on barber_bookings;
+create policy "update semua" on barber_bookings for update using (true);
 
--- Seed contoh
+-- Seed contoh (aman dijalankan ulang)
 insert into barbers (nama, foto, aktif) values
   ('Andi', null, true),
   ('Budi', null, true),
@@ -83,3 +87,24 @@ insert into services (nama, harga, durasi_menit) values
   ('Potong + Cuci', 45000, 45),
   ('Full Grooming', 80000, 60)
 on conflict do nothing;
+
+-- PENTING: script versi lama sempat DROP trigger rental (trg_cegah_overlap on bookings).
+-- Jalankan blok di bawah untuk memastikan trigger rental tetap ada:
+-- (copy dari /home/ubuntu/RentalSedulur/supabase/schema.sql)
+create or replace function cegah_overlap() returns trigger as $$
+begin
+  if exists (
+    select 1 from bookings
+    where unit_id = NEW.unit_id
+      and status in ('pending','confirmed')
+      and daterange(tgl_mulai, tgl_selesai, '[]') && daterange(NEW.tgl_mulai, NEW.tgl_selesai, '[]')
+      and id <> NEW.id
+  ) then
+    raise exception 'Unit % sudah dibooking di rentang % s/d %', NEW.unit_id, NEW.tgl_mulai, NEW.tgl_selesai;
+  end if;
+  return NEW;
+end; $$ language plpgsql;
+
+drop trigger if exists trg_cegah_overlap on bookings;
+create trigger trg_cegah_overlap before insert or update on bookings
+for each row execute function cegah_overlap();

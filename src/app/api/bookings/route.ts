@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
   if (!URL || !KEY) return NextResponse.json({ bookings: [] })
   const { createClient } = await import('@supabase/supabase-js')
   const db = createClient(URL, KEY)
-  let query = db.from('bookings').select('*, barbers(nama), services(nama,harga)').order('jam_mulai')
+  let query = db.from('barber_bookings').select('*, barbers(nama), services(nama,harga)').order('jam_mulai')
   if (barber_id) query = query.eq('barber_id', barber_id)
   if (tanggal) query = query.eq('tanggal', tanggal)
   query = query.neq('status', 'batal')
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
 
   // Cek overlap
   const { data: bentrok } = await db
-    .from('bookings')
+    .from('barber_bookings')
     .select('id')
     .eq('barber_id', barber_id)
     .eq('tanggal', tanggal)
@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
   }
 
   const { data, error } = await db
-    .from('bookings')
+    .from('barber_bookings')
     .insert({ barber_id, service_id, tanggal, jam_mulai: mulai, jam_selesai, nama_pelanggan, wa, status: 'pending' })
     .select()
     .single()
@@ -77,7 +77,7 @@ export async function PATCH(req: NextRequest) {
   if (!URL || !KEY) return NextResponse.json({ ok: true })
   const { createClient } = await import('@supabase/supabase-js')
   const db = createClient(URL, KEY)
-  const { error } = await db.from('bookings').update({ status }).eq('id', id)
+  const { error } = await db.from('barber_bookings').update({ status }).eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ ok: true })
 }
