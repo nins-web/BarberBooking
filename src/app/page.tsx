@@ -1,101 +1,77 @@
-import Image from "next/image";
+import Link from 'next/link'
+import { FALLBACK_BARBERS, FALLBACK_SERVICES, hasSupabaseEnv, rupiah, supabase } from '@/lib/supabase'
 
-export default function Home() {
+const WA_ADMIN = '6281289538855'
+
+export default async function Home() {
+  let barbers = FALLBACK_BARBERS
+  let services = FALLBACK_SERVICES
+  if (hasSupabaseEnv) {
+    const [b, s] = await Promise.all([
+      supabase.from('barbers').select('*').order('nama'),
+      supabase.from('services').select('*').order('harga'),
+    ])
+    if (b.data?.length) barbers = b.data
+    if (s.data?.length) services = s.data
+  }
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+    <main className="min-h-screen bg-neutral-950 text-neutral-100">
+      <div className="mx-auto max-w-4xl px-4 py-10">
+        <header className="text-center">
+          <h1 className="text-3xl font-bold">Barbershop Booking</h1>
+          <p className="mt-2 text-neutral-400">Pilih layanan & kapster favoritmu, booking tanpa antre.</p>
+          <div className="mt-5 flex justify-center gap-3">
+            <Link href="/booking" className="rounded-lg bg-amber-400 px-5 py-2.5 font-semibold text-black hover:bg-amber-300">
+              Booking Sekarang
+            </Link>
+            <a
+              href={`https://wa.me/${WA_ADMIN}?text=${encodeURIComponent('Halo, mau tanya booking barbershop')}`}
+              target="_blank"
+              className="rounded-lg border border-neutral-700 px-5 py-2.5 hover:bg-neutral-900"
+            >
+              Chat Admin
+            </a>
+          </div>
+        </header>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
+        <section className="mt-10">
+          <h2 className="text-xl font-semibold">Layanan</h2>
+          <div className="mt-3 grid gap-3 sm:grid-cols-3">
+            {services.map((s) => (
+              <div key={s.id} className="rounded-xl border border-neutral-800 bg-neutral-900 p-4">
+                <p className="font-semibold">{s.nama}</p>
+                <p className="mt-1 text-amber-300">{rupiah(s.harga)}</p>
+                <p className="text-sm text-neutral-400">{s.durasi_menit} menit</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="mt-10">
+          <h2 className="text-xl font-semibold">Kapster</h2>
+          <div className="mt-3 grid gap-3 sm:grid-cols-3">
+            {barbers
+              .filter((b) => b.aktif)
+              .map((b) => (
+                <div key={b.id} className="rounded-xl border border-neutral-800 bg-neutral-900 p-4 text-center">
+                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-neutral-700 text-xl font-bold">
+                    {b.nama.charAt(0)}
+                  </div>
+                  <p className="mt-2 font-semibold">{b.nama}</p>
+                  <p className="text-xs text-green-400">Tersedia</p>
+                </div>
+              ))}
+          </div>
+        </section>
+
+        <footer className="mt-10 text-center text-sm text-neutral-500">
+          Jam operasional 09.00–21.00 • WA admin{' '}
+          <a className="underline" href={`https://wa.me/${WA_ADMIN}`}>
+            {WA_ADMIN}
           </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
-  );
+        </footer>
+      </div>
+    </main>
+  )
 }
