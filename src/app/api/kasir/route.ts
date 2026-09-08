@@ -4,7 +4,23 @@ const URL = process.env.NEXT_PUBLIC_SUPABASE_URL
 const KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 const KOMISI = 20000
 
-// GET: list transaksi (filter tanggal, mis. /api/kasir?tanggal=2026-09-08)
+// Tanggal & jam default dalam WIB (Asia/Jakarta), bukan UTC.
+function todayWIB(): string {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' })
+}
+function nowWIBTime(): string {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Jakarta',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  }).formatToParts(new Date())
+  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? '00'
+  return `${get('hour')}:${get('minute')}:${get('second')}`
+}
+
+// GET: list transaksi (filter tanggal WIB, mis. /api/kasir?tanggal=2026-09-08)
 export async function GET(req: NextRequest) {
   const tanggal = req.nextUrl.searchParams.get('tanggal')
   if (!URL || !KEY) return NextResponse.json({ transaksi: [] })
@@ -20,11 +36,11 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ transaksi: data })
 }
 
-// POST: catat transaksi. Body: { barber_id, service_id, metode, tanggal? }
-// Harga diambil dari tabel services, komisi tetap 20000.
+// POST: catat transaksi. Body: { barber_id, service_id, metode, tanggal?, jam? }
+// Harga diambil dari tabel services, komisi tetap 20000 (dibayar owner di atas omzet).
 export async function POST(req: NextRequest) {
   const body = await req.json()
-  const { barber_id, service_id, metode, tanggal } = body
+  const { barber_id, service_id, metode, tanggal, jam } = body
   if (!barber_id || !service_id) {
     return NextResponse.json({ error: 'Pilih kapster dan layanan dulu.' }, { status: 400 })
   }
@@ -49,7 +65,8 @@ export async function POST(req: NextRequest) {
     .insert({
       barber_id,
       service_id,
-      tanggal: tanggal || new Date().toISOString().slice(0, 10),
+      tanggal: tanggal || todayWIB(),
+      jam: jam || nowWIBTime(),
       harga: svc.harga,
       metode: metode ?? 'Tunai',
       komisi: KOMISI,

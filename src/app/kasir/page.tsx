@@ -8,12 +8,29 @@ type Service = { id: string; nama: string; harga: number }
 
 const KOMISI = 20000
 
+// Tanggal & jam default WIB (Asia/Jakarta), bukan UTC.
+function todayWIB(): string {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' })
+}
+function nowWIBTime(): string {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Jakarta',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(new Date())
+  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? '00'
+  return `${get('hour')}:${get('minute')}`
+}
+
 export default function KasirPage() {
   const [barbers, setBarbers] = useState<Barber[]>(FALLBACK_BARBERS)
   const [services, setServices] = useState<Service[]>(FALLBACK_SERVICES)
   const [barberId, setBarberId] = useState(FALLBACK_BARBERS[0].id)
   const [serviceId, setServiceId] = useState(FALLBACK_SERVICES[0].id)
   const [metode, setMetode] = useState('Tunai')
+  const [tanggal, setTanggal] = useState(todayWIB)
+  const [jam, setJam] = useState(nowWIBTime)
   const [loading, setLoading] = useState(false)
   const [err, setErr] = useState('')
   const [ok, setOk] = useState('')
@@ -47,7 +64,7 @@ export default function KasirPage() {
       const res = await fetch('/api/kasir', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ barber_id: barberId, service_id: serviceId, metode }),
+        body: JSON.stringify({ barber_id: barberId, service_id: serviceId, metode, tanggal, jam }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Gagal menyimpan transaksi')
@@ -63,8 +80,18 @@ export default function KasirPage() {
     <main className="min-h-screen bg-neutral-950 text-neutral-100">
       <div className="mx-auto max-w-xl px-4 py-10">
         <h1 className="text-2xl font-bold">Kasir</h1>
-        <p className="mt-1 text-sm text-neutral-400">Catat pembayaran pelanggan. Komisi kapster {rupiah(KOMISI)}/transaksi.</p>
+        <p className="mt-1 text-sm text-neutral-400">Catat pembayaran pelanggan. Komisi kapster {rupiah(KOMISI)}/transaksi, dibayar owner di atas omzet. QRIS masuk ke rekening owner.</p>
         <form onSubmit={simpan} className="mt-6 space-y-5">
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-sm text-neutral-400">Tanggal (WIB)</label>
+              <input type="date" value={tanggal} onChange={(e) => setTanggal(e.target.value)} className="mt-2 w-full rounded-lg bg-neutral-900 border border-neutral-700 px-3 py-2" />
+            </div>
+            <div>
+              <label className="text-sm text-neutral-400">Jam (WIB)</label>
+              <input type="time" value={jam} onChange={(e) => setJam(e.target.value)} className="mt-2 w-full rounded-lg bg-neutral-900 border border-neutral-700 px-3 py-2" />
+            </div>
+          </div>
           <div>
             <label className="text-sm text-neutral-400">Kapster</label>
             <select value={barberId} onChange={(e) => setBarberId(e.target.value)} className="mt-2 w-full rounded-lg bg-neutral-900 border border-neutral-700 px-3 py-2">

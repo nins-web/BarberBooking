@@ -1,5 +1,9 @@
 -- Kasir v1: tabel transaksi barber (thin)
 -- Jalankan di SQL Editor Supabase. Aman dijalankan ulang (idempotent).
+--
+-- Konteks owner: QRIS masuk ke rekening atas nama owner, HP kasir milik owner.
+-- Harga layanan belum termasuk komisi Rp20.000/kepala — komisi dibayar owner
+-- di atas omzet (di luar harga). Laba bersih = omzet kotor - total komisi.
 
 create table if not exists barber_transactions (
   id uuid primary key default gen_random_uuid(),
@@ -7,9 +11,9 @@ create table if not exists barber_transactions (
   service_id uuid not null references services(id) on delete cascade,
   tanggal date not null default current_date,
   jam time not null default now(),
-  harga integer not null default 0,
+  harga integer not null default 0 check (harga >= 0),
   metode text not null default 'Tunai' check (metode in ('Tunai','QRIS')),
-  komisi integer not null default 20000,
+  komisi integer not null default 20000 check (komisi >= 0),
   created_at timestamptz not null default now()
 );
 

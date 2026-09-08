@@ -4,6 +4,13 @@ import { useEffect, useState } from 'react'
 
 import { rupiah } from '@/lib/supabase'
 
+// Tanggal hari ini dalam WIB (Asia/Jakarta), format YYYY-MM-DD
+function todayWIB(): string {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' })
+}
+
+const ADMIN_OK_KEY = 'admin_pin_ok'
+
 type Row = {
   id: string
   tanggal: string
@@ -26,8 +33,30 @@ type Tx = {
 export default function AdminPage() {
   const [rows, setRows] = useState<Row[]>([])
   const [tx, setTx] = useState<Tx[]>([])
-  const [tanggal, setTanggal] = useState(() => new Date().toISOString().slice(0, 10))
+  const [tanggal, setTanggal] = useState(todayWIB)
   const [loading, setLoading] = useState(true)
+  // --- PIN gate (4 digit) ---
+  const [pinOk, setPinOk] = useState(false)
+  const [pin, setPin] = useState('')
+  const [pinErr, setPinErr] = useState('')
+
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem(ADMIN_OK_KEY) === '1') setPinOk(true)
+    } catch { /* abaikan */ }
+  }, [])
+
+  function submitPin(e: React.FormEvent) {
+    e.preventDefault()
+    const expected = process.env.NEXT_PUBLIC_ADMIN_PIN || '1234'
+    if (pin === expected) {
+      setPinOk(true)
+      setPinErr('')
+      try { sessionStorage.setItem(ADMIN_OK_KEY, '1') } catch { /* abaikan */ }
+    } else {
+      setPinErr('PIN salah. Coba lagi.')
+    }
+  }
 
   async function load(t: string) {
     setLoading(true)
@@ -49,7 +78,7 @@ export default function AdminPage() {
     }
   }
 
-  useEffect(() => { load(tanggal) }, [tanggal])
+  useEffect(() => { if (pinOk) load(tanggal) }, [tanggal, pinOk])
 
   async function setStatus(id: string, status: string) {
     await fetch('/api/bookings', {
@@ -60,24 +89,53 @@ export default function AdminPage() {
     load(tanggal)
   }
 
+  if (!pinOk) {
+    return (
+      <main className="min-h-screen bg-neutral-950 text-neutral-100">
+        <div className="mx-auto max-w-sm px-4 py-10">
+          <h1 className="text-2xl font-bold">Admin — PIN</h1>
+          <p className="mt-1 text-sm text-neutral-400">Masukkan PIN admin 4 digit untuk melihat data.</p>
+          <form onSubmit={submitPin} className="mt-6 space-y-3">
+            <input
+              type="password"
+              inputMode="numeric"
+              maxLength={4}
+              placeholder="••••"
+              value={pin}
+              onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+              className="w-full rounded-lg bg-neutral-900 border border-neutral-700 px-3 py-2 text-center text-xl tracking-widest"
+            />
+            {pinErr && <p className="text-sm text-red-400">{pinErr}</p>}
+            <button className="w-full rounded-lg bg-amber-400 py-2.5 font-semibold text-black">
+              Buka
+            </button>
+          </form>
+        </div>
+      </main>
+    )
+  }
+
   return (
     <main className="min-h-screen bg-neutral-950 text-neutral-100">
       <div className="mx-auto max-w-3xl px-4 py-10">
         <h1 className="text-2xl font-bold">Admin — Booking Hari Ini</h1>
         <input type="date" value={tanggal} onChange={(e) => setTanggal(e.target.value)} className="mt-4 rounded-lg bg-neutral-900 border border-neutral-700 px-3 py-2" />
         <section className="mt-6 rounded-xl border border-neutral-800 bg-neutral-900 p-4">
-          <h2 className="font-bold">Omzet Hari Ini</h2>
+          <h2 className="font-bold">Omzet Hari Ini (WIB)</h2>
+          <p className="mt-1 text-xs text-neutral-400">QRIS masuk ke rekening owner. Harga layanan belum termasuk komisi Rp20.000/kepala — komisi dibayar owner di atas omzet.</p>
           {(() => {
-            const omzet = tx.reduce((a, t) => a + (t.harga || 0), 0)
-            const komisi = tx.reduce((a, t) => a + (t.komisi || 0), 0)
+            const omzetKotor = tx.reduce((a, t) => a + (t.harga || 0), 0)
+            const totalKomisi = tx.reduce((a, t) => a + (t.komisi || 0), 0)
+            const labaBersih = omzetKotor - totalKomisi
             const tunai = tx.filter((t) => t.metode === 'Tunai').reduce((a, t) => a + (t.harga || 0), 0)
             const qris = tx.filter((t) => t.metode === 'QRIS').reduce((a, t) => a + (t.harga || 0), 0)
             return (
               <div className="mt-2 grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
-                <div className="rounded-lg bg-neutral-950 p-3"><p className="text-neutral-400">Omzet</p><p className="font-bold">{rupiah(omzet)}</p></div>
+                <div className="rounded-lg bg-neutral-950 p-3"><p className="text-neutral-400">Omzet kotor</p><p className="font-bold">{rupiah(omzetKotor)}</p></div>
+                <div className="rounded-lg bg-neutral-950 p-3"><p className="text-neutral-400">Total komisi</p><p className="font-bold">{rupiah(totalKomisi)}</p></div>
+                <div className="rounded-lg bg-neutral-950 p-3"><p className="text-neutral-400">Laba bersih</p><p className="font-bold">{rupiah(labaBersih)}</p></div>
                 <div className="rounded-lg bg-neutral-950 p-3"><p className="text-neutral-400">Transaksi</p><p className="font-bold">{tx.length}x</p></div>
-                <div className="rounded-lg bg-neutral-950 p-3"><p className="text-neutral-400">Komisi</p><p className="font-bold">{rupiah(komisi)}</p></div>
-                <div className="rounded-lg bg-neutral-950 p-3"><p className="text-neutral-400">Tunai / QRIS</p><p className="font-bold">{rupiah(tunai)} / {rupiah(qris)}</p></div>
+                <div className="rounded-lg bg-neutral-950 p-3 col-span-2"><p className="text-neutral-400">Tunai / QRIS</p><p className="font-bold">{rupiah(tunai)} / {rupiah(qris)}</p></div>
               </div>
             )
           })()}
