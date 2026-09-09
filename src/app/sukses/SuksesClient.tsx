@@ -3,7 +3,7 @@
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 
-const WA_ADMIN = '6281289538855'
+const WA_ADMIN = '6288991304944'
 
 export default function SuksesClient() {
   const q = useSearchParams()
