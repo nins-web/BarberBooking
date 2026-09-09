@@ -1,0 +1,1 @@
+{"name":"Admin PIN gate loads","planSteps":[{"description":"Navigate to https://barber-booking-goceng000-2344s-projects.vercel.app/admin","type":"action"},{"description":"Verify the admin page shows a PIN input and submit button","type":"assertion"}],"projectId":"361be6d9-4250-4e56-bdc0-ecf9c7210d82","type":"frontend"}

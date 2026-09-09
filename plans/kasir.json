@@ -1,0 +1,1 @@
+{"name":"Kasir loads","planSteps":[{"description":"Navigate to https://barber-booking-goceng000-2344s-projects.vercel.app/kasir","type":"action"},{"description":"Verify the kasir page shows barber dropdown, service dropdown, payment method options Tunai and QRIS, and the save button","type":"assertion"}],"projectId":"361be6d9-4250-4e56-bdc0-ecf9c7210d82","type":"frontend"}
