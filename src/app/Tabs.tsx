@@ -50,19 +50,20 @@ export default function HomeTabs({
 
       {tab === 'layanan' && (
         <section className="mt-6">
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="divide-y divide-neutral-800 overflow-hidden rounded-xl border border-neutral-800 bg-neutral-900">
             {services.map((s) => (
-              <div key={s.id} className="flex flex-col rounded-xl border border-neutral-800 bg-neutral-900 p-4">
-                <p className="font-semibold">{s.nama}</p>
-                <p className="mt-1 text-lg font-bold text-amber-300">{rupiah(s.harga)}</p>
-                <p className="text-sm text-neutral-400">{s.durasi_menit} menit</p>
-                <Link
-                  href="/booking"
-                  className="mt-3 rounded-lg border border-amber-400/50 px-4 py-2 text-center text-sm font-semibold text-amber-300 hover:bg-amber-400 hover:text-black"
-                >
-                  Pilih
-                </Link>
-              </div>
+              <Link
+                key={s.id}
+                href={`/booking?service=${s.id}`}
+                className="flex items-center gap-3 p-4 transition-colors hover:bg-neutral-800"
+              >
+                <span className="flex-1">
+                  <span className="block font-semibold">{s.nama}</span>
+                  <span className="text-xs text-neutral-400">{s.durasi_menit} menit — ketuk untuk booking</span>
+                </span>
+                <span className="font-bold text-amber-300">{rupiah(s.harga)}</span>
+                <span className="text-xl text-neutral-500">›</span>
+              </Link>
             ))}
           </div>
         </section>

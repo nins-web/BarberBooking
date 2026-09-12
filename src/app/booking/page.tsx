@@ -65,9 +65,15 @@ export default function BookingPage() {
   }, [step, barberId, serviceId, tanggal, jam, nama, wa])
 
   useEffect(() => {
-    const id = new URLSearchParams(window.location.search).get('barber')
-    if (id && barbers.some((b) => b.id === id)) {
-      setBarberId(id)
+    const q = new URLSearchParams(window.location.search)
+    const barberParam = q.get('barber')
+    if (barberParam && barbers.some((b) => b.id === barberParam)) {
+      setBarberId(barberParam)
+      setJam(null)
+    }
+    const serviceParam = q.get('service')
+    if (serviceParam && services.some((s) => s.id === serviceParam)) {
+      setServiceId(serviceParam)
       setJam(null)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
