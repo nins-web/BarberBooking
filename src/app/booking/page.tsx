@@ -41,8 +41,8 @@ function save(key: string, value: unknown) {
 
 export default function BookingPage() {
   const router = useRouter()
-  const [barbers] = useState(FALLBACK_BARBERS)
-  const [services] = useState(FALLBACK_SERVICES)
+  const [barbers, setBarbers] = useState(FALLBACK_BARBERS)
+  const [services, setServices] = useState(FALLBACK_SERVICES)
   const [step, setStep] = useState(() => load('step', 0))
   const [barberId, setBarberId] = useState<string>(() => load('barberId', FALLBACK_BARBERS[0].id))
   const [serviceId, setServiceId] = useState<string>(() => load('serviceId', FALLBACK_SERVICES[0].id))
@@ -65,6 +65,17 @@ export default function BookingPage() {
   }, [step, barberId, serviceId, tanggal, jam, nama, wa])
 
   useEffect(() => {
+    fetch('/api/meta')
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.barbers?.length) setBarbers(d.barbers)
+        if (d.services?.length) setServices(d.services)
+      })
+      .catch(() => {})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
     const q = new URLSearchParams(window.location.search)
     const barberParam = q.get('barber')
     if (barberParam && barbers.some((b) => b.id === barberParam)) {
@@ -79,8 +90,8 @@ export default function BookingPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const service = services.find((s) => s.id === serviceId)!
-  const barber = barbers.find((b) => b.id === barberId)!
+  const service = services.find((s) => s.id === serviceId) ?? services[0]
+  const barber = barbers.find((b) => b.id === barberId) ?? barbers[0]
 
   useEffect(() => {
     if (!barberId || !tanggal) return
