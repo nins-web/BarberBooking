@@ -30,3 +30,4 @@ Aturan main iterasi UI/UX sampai pengguna bilang sempurna.
 - Ronde 1 (landing 3 tab): ACC — live.
 - Ronde 2 (booking wizard 4 langkah): ACC — live.
 - Ronde 3 (tab Kapster ringkas + klik → booking preselect): ACC — live.
+- Ronde 4 (anti-double kapster): ACC — live, HTML hanya 3 nama.

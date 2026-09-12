@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { FALLBACK_BARBERS, FALLBACK_SERVICES, rupiah } from '@/lib/supabase'
 
@@ -20,20 +21,48 @@ function formatTanggal(iso: string) {
   return d.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' })
 }
 
+function load<T>(key: string, fallback: T): T {
+  if (typeof window === 'undefined') return fallback
+  try {
+    const v = sessionStorage.getItem('booking:' + key)
+    return v !== null ? (JSON.parse(v) as T) : fallback
+  } catch {
+    return fallback
+  }
+}
+
+function save(key: string, value: unknown) {
+  try {
+    sessionStorage.setItem('booking:' + key, JSON.stringify(value))
+  } catch {
+    /* abaikan */
+  }
+}
+
 export default function BookingPage() {
   const router = useRouter()
   const [barbers] = useState(FALLBACK_BARBERS)
   const [services] = useState(FALLBACK_SERVICES)
-  const [step, setStep] = useState(0)
-  const [barberId, setBarberId] = useState(FALLBACK_BARBERS[0].id)
-  const [serviceId, setServiceId] = useState(FALLBACK_SERVICES[0].id)
-  const [tanggal, setTanggal] = useState(() => new Date().toISOString().slice(0, 10))
-  const [jam, setJam] = useState<string | null>(null)
-  const [nama, setNama] = useState('')
-  const [wa, setWa] = useState('')
+  const [step, setStep] = useState(() => load('step', 0))
+  const [barberId, setBarberId] = useState<string>(() => load('barberId', FALLBACK_BARBERS[0].id))
+  const [serviceId, setServiceId] = useState<string>(() => load('serviceId', FALLBACK_SERVICES[0].id))
+  const [tanggal, setTanggal] = useState(() => load('tanggal', new Date().toISOString().slice(0, 10)))
+  const [jam, setJam] = useState<string | null>(() => load<string | null>('jam', null))
+  const [nama, setNama] = useState(() => load('nama', ''))
+  const [wa, setWa] = useState(() => load('wa', ''))
   const [terisi, setTerisi] = useState<BookingRow[]>([])
   const [loading, setLoading] = useState(false)
   const [err, setErr] = useState('')
+
+  useEffect(() => {
+    save('step', step)
+    save('barberId', barberId)
+    save('serviceId', serviceId)
+    save('tanggal', tanggal)
+    save('jam', jam)
+    save('nama', nama)
+    save('wa', wa)
+  }, [step, barberId, serviceId, tanggal, jam, nama, wa])
 
   useEffect(() => {
     const id = new URLSearchParams(window.location.search).get('barber')
@@ -99,8 +128,10 @@ export default function BookingPage() {
   return (
     <main className="min-h-screen bg-neutral-950 text-neutral-100">
       <div className="mx-auto max-w-2xl px-4 py-10">
-        <p className="text-center text-xs font-bold tracking-[0.3em] text-amber-400">BRO BARBERSHOP</p>
-        <h1 className="mt-1 text-center text-2xl font-black">Booking Tempat Duduk</h1>
+        <Link href="/" className="block text-center" aria-label="Kembali ke beranda">
+          <p className="text-xs font-bold tracking-[0.3em] text-amber-400">‹ BRO BARBERSHOP</p>
+          <h1 className="mt-1 text-2xl font-black">Booking Tempat Duduk</h1>
+        </Link>
 
         <ol className="mt-6 flex items-center gap-1">
           {STEPS.map((s, i) => (
