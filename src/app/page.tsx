@@ -17,6 +17,14 @@ export default async function Home() {
     if (b.data?.length) barbers = b.data
     if (s.data?.length) services = s.data
   }
+  // Anti-double: 1 nama = 1 baris (DB boleh kotor, tampil tetap bersih)
+  const seen = new Set<string>()
+  barbers = barbers.filter((x) => {
+    const k = (x.nama ?? '').trim().toLowerCase()
+    if (seen.has(k)) return false
+    seen.add(k)
+    return true
+  })
 
   return (
     <main className="min-h-screen bg-neutral-950 text-neutral-100">
