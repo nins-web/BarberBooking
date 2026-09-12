@@ -70,17 +70,24 @@ export default function HomeTabs({
 
       {tab === 'kapster' && (
         <section className="mt-6">
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="divide-y divide-neutral-800 overflow-hidden rounded-xl border border-neutral-800 bg-neutral-900">
             {barbers
               .filter((b) => b.aktif)
               .map((b) => (
-                <div key={b.id} className="rounded-xl border border-neutral-800 bg-neutral-900 p-4 text-center">
-                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-amber-400 text-xl font-bold text-black">
+                <Link
+                  key={b.id}
+                  href={`/booking?barber=${b.id}`}
+                  className="flex items-center gap-3 p-4 transition-colors hover:bg-neutral-800"
+                >
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-300 to-amber-600 text-lg font-black text-black">
                     {b.nama.charAt(0)}
                   </div>
-                  <p className="mt-2 font-semibold">{b.nama}</p>
-                  <p className="text-xs text-green-400">● Tersedia</p>
-                </div>
+                  <span className="flex-1">
+                    <span className="block font-semibold">{b.nama}</span>
+                    <span className="text-xs text-green-400">● Tersedia — ketuk untuk booking</span>
+                  </span>
+                  <span className="text-xl text-neutral-500">›</span>
+                </Link>
               ))}
           </div>
         </section>

@@ -35,6 +35,15 @@ export default function BookingPage() {
   const [loading, setLoading] = useState(false)
   const [err, setErr] = useState('')
 
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get('barber')
+    if (id && barbers.some((b) => b.id === id)) {
+      setBarberId(id)
+      setJam(null)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const service = services.find((s) => s.id === serviceId)!
   const barber = barbers.find((b) => b.id === barberId)!
 
